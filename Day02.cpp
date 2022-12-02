@@ -15,37 +15,12 @@ int main(int argc, char* argv[])
 	}
 
 	int part1 = 0, part2 = 0;
-
-	std::string a, b;
-	while (in >> a >> b)
+	std::string line;
+	while (std::getline(in, line))
 	{
-		int score = b[0] - 'W';
-		int diff = a[0] - (b[0] - ('X' - 'A'));
-		if (!diff)
-			score += 3;
-		else {
-			if (a[0] == 'A')
-				score += b[0] == 'Y' ? 6 : 0;
-			else if (a[0] == 'B')
-				score += b[0] == 'Z' ? 6 : 0;
-			else score += b[0] == 'X' ? 6 : 0;
-		}
-		part1 += score;
-
-		score = 3 * (b[0] - 'X');
-		if (score == 3)
-			score += a[0] - 'A' + 1;
-		else if (!score)
-		{
-			if (a[0] == 'B') score += 1;
-			else score += (a[0] == 'C') ? 2 : 3;
-		}
-		else
-		{
-			if (a[0] == 'B') score += 3;
-			else score += (a[0] == 'A') ? 2 : 1;
-		}
-		part2 += score;
+		int a = line[0]-'A', b = line[2]-'X';
+		part1 += b + 1 + 3 * ((4 + b - a) % 3);
+		part2 += 3 * b + (a + b + 2) % 3 + 1;
 	}
 
 	std::cout << std::format("Part 1: {}\nPart 2: {}", part1, part2) << std::endl;
