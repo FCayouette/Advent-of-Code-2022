@@ -4,7 +4,7 @@ int main(int argc, char* argv[])
 {
 	if (argc < 2)
 	{
-		std::cout << "Usage: Day07.exe inputFilename\n";
+		std::cout << "Usage: Day08.exe inputFilename\n";
 		return -1;
 	}
 	std::ifstream in(argv[1], std::ios::in);
@@ -20,63 +20,46 @@ int main(int argc, char* argv[])
 	while (in >> line)
 		grid.emplace_back(std::move(line));
 
-	for (int y = 0; y < grid.size(); ++y)
-		for (int x = 0; x < grid[y].size(); ++x)
+	for (int y = 0, maxY = grid.size(), maxX = grid[0].size(); y < maxY; ++y)
+		for (int x = 0; x < maxX; ++x)
 		{
-			if (x == 0 || y == 0 || x == grid[y].size() - 1 || y == grid.size() - 1)
+			if (x == 0 || y == 0 || x == maxX - 1 || y == maxY - 1)
 				++part1;
 			else
 			{
+				char v = grid[y][x];
 				int left = 1, right = 1, up = 1, down = 1;
-
-				while (grid[y][x - left] < grid[y][x])
-				{
-					if (x - left == 0)
-						break;
+				while (grid[y][x - left] < v && x-left > 0)
 					++left;
-				}
-				while (grid[y][x + right] < grid[y][x])
-				{
-					if (x + right == grid[y].size() - 1)
-						break;
+				while (grid[y][x + right] < v && x + right < maxX -1)
 					++right;
-				}
-				while (grid[y - up][x] < grid[y][x])
-				{
-					if (y - up == 0)
-						break;
+				while (grid[y - up][x] < v && y-up > 0)
 					++up;
-				}
-				while (grid[y + down][x] < grid[y][x])
-				{
-					if (y + down == grid.size() - 1)
-						break;
+				while (grid[y + down][x] < v && y + down < maxY -1)
 					++down;
-				}
-
+				
 				int score = left * right * up * down;
 				if (score > part2)
 					part2 = score;
 
-				char v = grid[y][x];
-				if (std::all_of(grid[y].cbegin(), grid[y].cbegin() + x, [v](char c) {return c < v; }) ||
-					std::all_of(grid[y].cbegin() + x + 1, grid[y].cend(), [v](char c) {return c < v; }))
-				{
-					++part1;
-					continue;
-				}
-				bool tall = true;
-				for (int i = 0; i < y && tall; ++i)
-					tall = grid[i][x] < v;
-				if (tall)
+				if (std::all_of(grid[y].cbegin(), grid[y].cbegin() + x, [v](char c) { return c < v; }) ||
+					std::all_of(grid[y].cbegin() + x + 1, grid[y].cend(), [v](char c) { return c < v; }))
 					++part1;
 				else
 				{
-					tall = true;
-					for (int i = y + 1; i < grid.size() && tall; ++i)
+					bool tall = true;
+					for (int i = 0; i < y && tall; ++i)
 						tall = grid[i][x] < v;
 					if (tall)
 						++part1;
+					else
+					{
+						tall = true;
+						for (int i = y + 1; i < maxY && tall; ++i)
+							tall = grid[i][x] < v;
+						if (tall)
+							++part1;
+					}
 				}
 			}
 		}
