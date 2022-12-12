@@ -8,9 +8,7 @@ struct Coord
 	constexpr Coord operator + (const Coord& p) const { return Coord(x + p.x, y + p.y); }
 	T x, y;
 };
-
 using Point = Coord<int>;
-constexpr std::array<Point, 4> directions = { Point(1, 0), Point(0, 1), Point(-1, 0), Point(0,-1) };
 
 int main(int argc, char* argv[])
 {
@@ -26,9 +24,10 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
-	int part1 = 0, part2, maxY = 0;
+	int part1 = 0, part2 = 0, maxY = 0, dist = 0;
 	std::string line;
 	std::vector<std::string> map;
+	std::vector<std::vector<char>> visitMap;
 	Point start, end;
 
 	while (in >> line)
@@ -45,76 +44,80 @@ int main(int argc, char* argv[])
 			end = Point(p, maxY);
 			line[p] = 'z';
 		}
+		visitMap.emplace_back(line.size(), 0);
 		map.emplace_back(std::move(line));
 		++maxY;
 	}
 	int maxX = map.front().size();
 
-	std::set<Point> visited, current, next;
-	current.insert(start);
-	visited = current;
-	
-	auto Step = [&map, &visited, &next](const Point& d, const Point& s)
+	std::vector<Point> current, next;
+	current.push_back(start);
+	visitMap[start.y][start.x] = 1;
+
+	auto Step = [&map, &visitMap, &next](const Point& d, const Point& s)
 	{
-		if ((map[d.y][d.x] <= map[s.y][s.x] + (char)1) && visited.insert(d).second)
-			next.insert(d);
+		if ((map[d.y][d.x] <= map[s.y][s.x] + (char)1) && !visitMap[d.y][d.x])
+		{
+			next.push_back(d);
+			visitMap[d.y][d.x] = 1;
+		}
 	};
 
-	while (true)
+	while (!visitMap[end.y][end.x])
 	{
 		++part1;
 		for (const Point& p : current)
 		{
 			if (p.x != maxX -1)
-				Step(p + directions[0], p);
+				Step(p + Point(1, 0), p);
 			if (p.y != maxY -1)
-				Step(p + directions[1], p);
+				Step(p + Point(0, 1), p);
 			if (p.x != 0)
-				Step(p + directions[2], p);
+				Step(p + Point(-1, 0), p);
 			if (p.y != 0)
-				Step(p + directions[3], p);
+				Step(p + Point(0, -1), p);
 		}
-
 		std::swap(current, next);
 		next.clear();
-		if (visited.find(end) != visited.cend())
-			break;
 	}
 
-	part2 = part1;
-	for (int i = 0; i < map.size(); ++i)
-		for (int j = 0; j < map[i].size(); ++j)
-			if (map[i][j] == 'a')
-			{
-				current.clear();
-				current.insert(Point(j, i));
-				visited = current;
-				int potential = 0;
+	current.clear();
+	current.push_back(end);
 
-				while (++potential < part2)
-				{
-					for (const Point& p : current)
-					{
-						if (p.x != maxX - 1)
-							Step(p + directions[0], p);
-						if (p.y != maxY - 1)
-							Step(p + directions[1], p);
-						if (p.x != 0)
-							Step(p + directions[2], p);
-						if (p.y != 0)
-							Step(p + directions[3], p);
-					}
-
-					std::swap(current, next);
-					next.clear();
-					if (visited.find(end) != visited.cend())
-					{
-						part2 = potential;
-						break;
-					}
-				}
-			}
+	for (auto& row : visitMap)
+		std::fill(row.begin(), row.end(), 0);
+	visitMap[end.y][end.x] = 1;
 	
-	std::cout << std::format("Part 1: {}\nPart 2: {}", part1, part2);
+	auto StepBack = [&map, &visitMap, &next](const Point& d, const Point& s)
+	{
+		if ((map[d.y][d.x] + (char)1 >= map[s.y][s.x]) && !visitMap[d.y][d.x])
+		{
+			next.push_back(d);
+			visitMap[d.y][d.x] = 1;
+			if (map[d.y][d.x] == 'a')
+				return true;
+		}
+		return false;
+	};
+	
+	while (!part2)
+	{
+		++dist;
+		for (const Point& p : current)
+		{
+			if (p.x != maxX - 1 && StepBack(p + Point(1, 0), p))
+				part2 = dist;
+			if (p.y != maxY - 1 && StepBack(p + Point(0, 1), p))
+				part2 = dist;
+			if (p.x != 0 && StepBack(p + Point(-1, 0), p))
+				part2 = dist;
+			if (p.y != 0 && StepBack(p + Point(0, -1), p))
+				part2 = dist;
+		}
+		std::swap(current, next);
+		next.clear();
+	}
+	
+	std::cout << std::format("Part 1: {}\nPart 2: {}\n", part1, part2);
 	return 0;
 }
