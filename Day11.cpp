@@ -1,7 +1,6 @@
 import std.core;
 
 using u64 = unsigned long long;
-#define ALL(x) (x).begin(),(x).end()
 
 enum class OP
 {
@@ -16,17 +15,40 @@ struct Monkey
 	OP op;
 	u64 opVal, divisor;
 	int onTrue, onFalse;
-	void DoOp()
+
+	template <typename T>
+	void DoOp(const T& postOp)
 	{
 		for (u64& item : items)
+		{
 			switch (op)
 			{
 			case OP::Add: item += opVal; break;
 			case OP::Mul: item *= opVal; break;
 			default: item *= item;
 			}
+			item = postOp(item);
+		}
 	}
 };
+
+template <typename T>
+u64 Simulate(std::vector<Monkey>& monkeys, int rounds, const T& postOp)
+{
+	std::vector<u64> inspections(monkeys.size(), 0);
+	for (int r = 0; r < rounds; ++r)
+		for (int i = 0; i < monkeys.size(); ++i)
+		{
+			Monkey& m = monkeys[i];
+			inspections[i] += m.items.size();
+			m.DoOp(postOp);
+			for (u64 item : m.items)
+				monkeys[item % m.divisor == 0 ? m.onTrue : m.onFalse].items.push_back(item);
+			m.items.clear();
+		}
+	std::sort(inspections.begin(), inspections.end(), std::greater<>());
+	return inspections[0] * inspections[1];
+}
 
 int main(int argc, char* argv[])
 {
@@ -42,14 +64,10 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
-	u64 part1 = 0, modulo = 1;
+	u64 part1 = 0, part2 = 0, modulo = 1;
 	std::string line;
 	std::vector<Monkey> monkeys, backup;
 	std::vector<u64> inspections;
-
-	int value;
-	char c;
-
 
 	while (std::getline(in, line))
 	{
@@ -75,16 +93,13 @@ int main(int argc, char* argv[])
 		}
 		
 		std::getline(in, line);
-		line = line.substr(line.find("by") + 3);
-		u64 divisor = stoi(line);
-		m.divisor = divisor;
-		modulo *= divisor;
+		modulo *= m.divisor = stoi(line.substr(line.find("by") + 3));
 		
 		std::getline(in, line);
-		m.onTrue = line.back() - '0';
+		m.onTrue = stoi(line.substr(line.find("monkey") + 7));
 		
 		std::getline(in, line);
-		m.onFalse = line.back() - '0';
+		m.onFalse = stoi(line.substr(line.find("monkey") + 7));
 
 		monkeys.push_back(m);
 		inspections.push_back(0);
@@ -93,42 +108,9 @@ int main(int argc, char* argv[])
 	}
 
 	backup = monkeys;
+	part1 = Simulate(monkeys, 20, [](u64 i) { return i / 3; });
+	part2 = Simulate(backup, 10000, [modulo](u64 i) { return i % modulo; });
 
-	for (int round = 0; round < 20; ++round)
-		for (int i = 0; i < monkeys.size(); ++i)
-		{
-			Monkey& m = monkeys[i];
-			inspections[i] += m.items.size();
-			m.DoOp();
-			for (u64 item : m.items)
-			{
-				item /= 3;
-				monkeys[item % m.divisor == 0 ? m.onTrue : m.onFalse].items.push_back(item);
-			}
-			m.items.clear();
-		}
-	
-	std::sort(ALL(inspections), std::greater<>());
-	part1 = inspections[0] * inspections[1];
-
-	std::fill(ALL(inspections), 0);
-	std::swap(monkeys, backup);
-	for (int round = 0; round < 10000; ++round)
-		for (int i = 0; i < monkeys.size(); ++i)
-		{
-			Monkey& m = monkeys[i];
-			inspections[i] += m.items.size();
-			m.DoOp();
-			for (u64 item : m.items)
-			{
-				item %= modulo;
-				monkeys[item % m.divisor == 0 ? m.onTrue : m.onFalse].items.push_back(item);
-			}
-			m.items.clear();
-		}
-	
-	std::sort(ALL(inspections), std::greater<>());
-
-	std::cout << std::format("Part 1: {}\nPart 2: {}", part1, inspections[0] * inspections[1]);
+	std::cout << std::format("Part 1: {}\nPart 2: {}", part1, part2);
 	return 0;
 }
