@@ -9,10 +9,10 @@ enum Result
 	NotRight
 };
 
-std::string GetList(const std::string& s, int start)
+std::string_view GetList(const std::string_view& s, size_t start)
 {
-	int end = ++start;
-	int depth = 1;
+	size_t end = ++start;
+	size_t depth = 1;
 	while (depth)
 	{
 		if (s[end] == '[')
@@ -24,12 +24,14 @@ std::string GetList(const std::string& s, int start)
 	return s.substr(start, end - start - 1);
 }
 
-Result Compare(const std::string& a, const std::string& b, int x, int y)
+Result Compare(const std::string_view& a, const std::string_view& b)
 {	// Empty checks
 	if (a.empty())
 		return b.empty() ? Unknown : RightOrder;
 	else if (b.empty())
 		return NotRight;
+
+	size_t x = 0, y = 0;
 
 	while (x < a.size() && y < b.size())
 	{
@@ -40,23 +42,20 @@ Result Compare(const std::string& a, const std::string& b, int x, int y)
 
 		if (a[x] == '[')
 		{
-			std::string lList = GetList(a, x);
+			std::string_view lList = GetList(a, x);
 			if (b[y] == '[')
 			{
-				std::string rList = GetList(b, y);
-				Result r = Compare(lList, rList, 0, 0);
-				if (r != Unknown)
+				std::string_view rList = GetList(b, y);
+				if (Result r = Compare(lList, rList))
 					return r;
 				x += lList.size() + 2;
 				y += rList.size() + 2;
 			}
 			else
 			{
-				int Y = y;
-				while (isDigit(b[Y])) ++Y;
-				std::string rList = b.substr(y, Y - y);
-				Result r = Compare(lList, rList, 0, 0);
-				if (r != Unknown)
+				size_t Y = y;
+				while (Y < b.size() && isDigit(b[Y])) ++Y;
+				if (Result r = Compare(lList, b.substr(y, Y - y)))
 					return r;
 				x += lList.size() + 2;
 				y = Y;
@@ -64,26 +63,27 @@ Result Compare(const std::string& a, const std::string& b, int x, int y)
 		}
 		else
 		{
-			int X = x;
-			while (isDigit(a[X])) ++X;
-			std::string lList = a.substr(x, X - x);
+			size_t X = x;
+			while (X < a.size() && isDigit(a[X])) ++X;
+			std::string_view lList = a.substr(x, X - x);
 			
 			if (b[y] == '[')
 			{
-				std::string rList = GetList(b, y);
-				Result r = Compare(lList, rList, 0, 0);
-				if (r != Unknown)
+				std::string_view rList = GetList(b, y);
+				if (Result r = Compare(lList, rList))
 					return r;
 				x += lList.size() + 1;
 				y += rList.size() + 2;
 			}
 			else
 			{
-				int Y = y;
-				while (isDigit(b[Y])) ++Y;
-				int left = stoi(a.substr(x, X - x)), right = stoi(b.substr(y, Y - y));
-				if (left < right) return RightOrder;
-				else if (left > right) return NotRight;
+				size_t Y = y, left, right;
+				while (Y < b.size() && isDigit(b[Y])) ++Y;
+				auto R = std::from_chars(a.data() + x, a.data() + X, left);
+				R = std::from_chars(b.data() + y, b.data() + Y, right);
+				if (auto t = left <=> right;
+					t < 0) return RightOrder;
+				else if (t > 0) return NotRight;
 				x = X;
 				y = Y;
 			}
@@ -93,16 +93,6 @@ Result Compare(const std::string& a, const std::string& b, int x, int y)
 		return y >= b.size() ? Unknown : RightOrder;
 	return NotRight;
 }
-
-struct Decoder
-{
-	Decoder(const std::string& s = "") : str(s) {}
-	std::string str;
-	bool operator <(const Decoder& d) const
-	{
-		return Compare(str, d.str, 0, 0) == RightOrder;
-	}
-};
 
 int main(int argc, char* argv[])
 {
@@ -118,12 +108,12 @@ int main(int argc, char* argv[])
 		return -1;
 	}
 
-	int part1 = 0, part2 = 0, count = 1;
+	int part1 = 0, part2, count = 1;
 	std::string first, second;
-	std::vector<Decoder> packets;
+	std::vector<std::string> packets;
 	while (in >> first >> second)
 	{
-		if (Compare(first, second, 0, 0) == RightOrder)
+		if (Compare(first, second) == RightOrder)
 			part1 += count;
 
 		packets.emplace_back(first);
@@ -133,22 +123,13 @@ int main(int argc, char* argv[])
 	packets.emplace_back("[[2]]");
 	packets.emplace_back("[[6]]");
 
-	std::sort(packets.begin(), packets.end());
+	std::sort(packets.begin(), packets.end(), [](const std::string& a, const std::string& b) { return Compare(a, b) == RightOrder; });
 
-	count = 0;
-	while (true)
-		if (packets[count++].str == "[[2]]")
-		{
-			part2 = count;
-			break;
-		}
-	while (true)
-		if (packets[++count].str == "[[6]]")
-		{
-			part2 *= count+1;
-			break;
-		}
-
+	auto iter = std::find(packets.cbegin(), packets.cend(), "[[2]]");
+	part2 = ++iter - packets.cbegin();
+	iter = std::find(iter, packets.cend(), "[[6]]");
+	part2 *= ++iter - packets.cbegin();
+	
 	std::cout << std::format("Part 1: {}\nPart 2: {}", part1, part2);
 	return 0;
 }
