@@ -33,11 +33,9 @@ u64 Check1(const std::map<std::string, int>& flowRates, std::map<std::string, bo
 	u64 best = 0;
 	if (at == "AA")
 	{
-		// simply go to next
 		for (const std::string& to : valves)
 		{
-			auto iter = dists.find(at + to);
-			u64 t = Check1(flowRates, states, valves, to, dists, 0, timeLeft - iter->second, toOpen);
+			u64 t = Check1(flowRates, states, valves, to, dists, 0, timeLeft - dists.find(at + to)->second, toOpen);
 			best = std::max(t, best);
 		}
 		return best;
@@ -49,20 +47,16 @@ u64 Check1(const std::map<std::string, int>& flowRates, std::map<std::string, bo
 	if (!states[at])
 	{
 		states[at] = true;
-		auto iter = flowRates.find(at);
-		best += Check1(flowRates, states, valves, at, dists, currentFlowRate + iter->second, timeLeft - 1, toOpen - 1) + currentFlowRate;
+		best += Check1(flowRates, states, valves, at, dists, currentFlowRate + flowRates.find(at)->second, timeLeft - 1, toOpen - 1) + currentFlowRate;
 		states[at] = false;
 		return best;
 	}
 	for (const std::string& v : valves)
 		if (!states[v])
 		{
-			auto dIter = dists.find(at + v);
-			if (int d = dIter->second;
+			if (int d = dists.find(at + v)->second;
 				d >= timeLeft)
-			{
 				best = std::max<u64>(best, currentFlowRate * timeLeft);
-			}
 			else
 			{
 				u64 t = d * currentFlowRate + Check1(flowRates, states, valves, v, dists, currentFlowRate, timeLeft - d, toOpen);
@@ -129,10 +123,7 @@ u64 Check2(const std::map<std::string, int>& flowRates, std::map<std::string, bo
 				}
 			auto dm = dists.find(meTo + s), em = dists.find(eleTo + s);
 			int dd = dm->second, ed = em->second;
-			//if (std::min(dd, ed) >= timeLeft)
-			//	best = currentFlowRate * timeLeft;
-			//else 
-				if (dd <= ed)
+			if (dd <= ed)
 				best = Check2(flowRates, states, valves, dists, s, s, currentFlowRate, timeLeft, toOpen, dd, 1000);
 			else
 				best = Check2(flowRates, states, valves, dists, s, s, currentFlowRate, timeLeft, toOpen, 1000, ed);
@@ -147,16 +138,9 @@ u64 Check2(const std::map<std::string, int>& flowRates, std::map<std::string, bo
 						if (!states[e] && e != m)
 						{
 							int ed = dists.find(eleTo + e)->second;
-							//if (int minDist = std::min(dd, ed);
-							//	minDist >= timeLeft)
-							//	best = std::max(best, timeLeft * currentFlowRate);
-							//else
-							{
-								int t = Check2(flowRates, states, valves, dists, m, e, currentFlowRate, timeLeft, toOpen, dd, ed);
-								best = std::max(best, t);
-							}
+							int t = Check2(flowRates, states, valves, dists, m, e, currentFlowRate, timeLeft, toOpen, dd, ed);
+							best = std::max(best, t);
 						}
-					
 				}
 		}
 
@@ -175,7 +159,6 @@ u64 Check2(const std::map<std::string, int>& flowRates, std::map<std::string, bo
 			best = timeLeft * currentFlowRate;
 		else if (toOpen == 1)
 		{
-			//Check if we are closer than the elephant, problem if we are equal
 			int dd = dists.find(meTo + eleTo)->second;
 			if (dd != eleLeft)
 				best = Check2(flowRates, states, valves, dists, eleTo, eleTo, currentFlowRate, timeLeft, toOpen, dd, eleLeft);
@@ -204,7 +187,6 @@ u64 Check2(const std::map<std::string, int>& flowRates, std::map<std::string, bo
 			best = timeLeft * currentFlowRate;
 		else if (toOpen == 1)
 		{
-			//Check if at equal dist
 			int ed = dists.find(eleTo + meTo)->second;
 			if (ed != meLeft)
 				best = Check2(flowRates, states, valves, dists, meTo, meTo, currentFlowRate, timeLeft, toOpen, meLeft, ed);
@@ -300,12 +282,7 @@ int main(int argc, char* argv[])
 	}
 	
 
-	//part1 = Part1(flowRates, state, connections, "AA", 0, 30, toOpen);
-	//u64 Check1(const std::map<std::string, int>& flowRates, std::map<std::string, bool>& states, const std::vector<std::string>& valves;
-	//const std::string& at, CONST std::map<std::string, int>& dists, int currentFlowRate, int timeLeft, int toOpen)
-	//part1 = Check1(flowRates, state, valves, "AA", distBetween, 0, 30, valves.size());
-	//u64 Check2(const std::map<std::string, int>& flowRates, std::map<std::string, bool>& states, const std::vector<std::string>& valves, const std::map<std::string, int>& dists,
-	// const std::string& meTo, const std::string& eleTo, int currentFlowRate, int timeLeft, int toOpen, int meLeft, int eleLeft)
+	part1 = Check1(flowRates, state, valves, "AA", distBetween, 0, 30, valves.size());
 	for (auto& p : distBetween)
 		++(p.second);
 
