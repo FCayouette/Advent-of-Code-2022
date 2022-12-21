@@ -1,8 +1,6 @@
 import std.core;
 
 using i64 = long long;
-#define ALL(x) (x).begin(),(x).end()
-#define ALLc(x) (x).cbegin(),(x).cend()
 
 enum OP
 {
@@ -16,9 +14,9 @@ struct Monkey
 	OP op = None;
 };
 using MonkeyMap = std::map<std::string, Monkey>;
-i64 Evaluate(const std::string& who, MonkeyMap& map)
+i64 Evaluate(const std::string& who, const MonkeyMap& map)
 {
-	Monkey& m = map.find(who)->second;
+	const Monkey& m = map.find(who)->second;
 	if (!m.op)
 		return m.value;
 	i64 l = Evaluate(m.left, map), r = Evaluate(m.right, map);
@@ -27,7 +25,31 @@ i64 Evaluate(const std::string& who, MonkeyMap& map)
 	case Add: return l + r;
 	case Sub: return l - r;
 	case Mul: return l * r;
-	default: return l / r;
+	default:  return l / r;
+	}
+}
+
+bool HasMe(const std::string& who, const MonkeyMap& map)
+{
+	if (who == "humn") return true;
+	const Monkey& m = map.find(who)->second;
+	return m.op ? HasMe(m.left, map) || HasMe(m.right, map) : false;
+}
+
+i64 Solve(const std::string& at, i64 equalTo, const MonkeyMap& map)
+{
+	if (at == "humn") 
+		return equalTo;
+	const Monkey& m = map.find(at)->second;
+	bool left = HasMe(m.left, map);
+	i64 otherSide = Evaluate(left ? m.right : m.left, map);
+	const std::string& toSolve = left ? m.left : m.right;
+	switch (m.op)
+	{
+	case Add: return Solve(toSolve, equalTo - otherSide, map);
+	case Sub: return Solve(toSolve, left ? equalTo + otherSide : otherSide - equalTo, map);
+	case Mul: return Solve(toSolve, equalTo / otherSide, map);
+	default:  return Solve(toSolve, left ? equalTo * otherSide : otherSide / equalTo, map);
 	}
 }
 
@@ -64,45 +86,16 @@ int main(int argc, char* argv[])
 			p = line.find(' ');
 			m.left = line.substr(0, p);
 			char c = line[p + 1];
-			m.op = (OP)(std::find(ALLc(Convert), c) - Convert.cbegin());
+			m.op = (OP)(std::find(Convert.cbegin(), Convert.cend(), c) - Convert.cbegin());
 			m.right = line.substr(p + 3);
 		}
 		monkeys[name] = m;
 	}
 	part1 = Evaluate("root", monkeys);
 
-	// Not generic, but does the job for my input
-	const Monkey& root = monkeys["root"];
-	Monkey& me = monkeys["humn"];
-	i64 right = Evaluate(root.right, monkeys);
-	i64 low = 0, high = 10000000000000;
-
-	auto Eval = [&monkeys, &me, s = root.left](i64 val)
-	{
-		me.value = val;
-		return Evaluate(s, monkeys);
-	};
-
-	i64 lowEval = Eval(low), highEval = Eval(high);
-
-	while (!part2)
-	{
-		i64 mid = (low + high) / 2, t = Eval(mid);
-		if (t == right)
-			part2 = mid;
-		else if (t < right)
-		{
-			high = mid;
-			highEval = t;
-		}
-		else
-		{
-			low = mid;
-			lowEval = t;
-		}
-	}
+	monkeys["root"].op = Sub;
+	part2 = Solve("root", 0, monkeys);
 
 	std::cout << std::format("Part 1: {}\nPart 2: {}\n", part1, part2);
-
 	return 0;
 }
