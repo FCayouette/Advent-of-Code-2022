@@ -10,6 +10,43 @@ struct Coord
 using Point = Coord<int>;
 constexpr std::array<Point, 4> directions = { Point(1, 0), Point(0, 1), Point(-1, 0), Point(0,-1) };
 
+using SideMappings = std::map<std::string, std::string>;
+void CreateMappings(int cubeSize, SideMappings& s)
+{
+	s.clear();
+	if (cubeSize == 4) // Example mapping
+	{
+		s["1T"] = "2T2";
+		s["1L"] = "3T3";
+		s["1R"] = "6R2";
+		s["2T"] = "1T2";
+		s["2L"] = "6B1";
+		s["2B"] = "5B2";
+		s["3T"] = "1L1";
+		s["3B"] = "5L1";
+		s["4R"] = "6T1";
+		s["5L"] = "3B1";
+		s["5B"] = "2B2";
+		s["6T"] = "4R3";
+		s["6R"] = "1R2";
+		s["6B"] = "2L3";
+		return;
+	}
+	s["1T"] = "6L1";
+	s["1L"] = "4L2";
+	s["2T"] = "6B0";
+	s["2R"] = "5R2";
+	s["2B"] = "3R1";
+	s["3L"] = "4T3";
+	s["3R"] = "2B3";
+	s["4T"] = "3L1";
+	s["4L"] = "1L2";
+	s["5R"] = "2R2";
+	s["5B"] = "6R1";
+	s["6L"] = "1T3";
+	s["6R"] = "5B3";
+	s["6B"] = "2T0";
+}
 
 int main(int argc, char* argv[])
 {
@@ -178,12 +215,9 @@ int main(int argc, char* argv[])
 			continue;
 		else
 		{
-			
-			std::string m;
-			while (std::getline(in, m))
-				mappings[m.substr(0, 2)] = m.substr(2);
-
 			cubeSize = std::max<int>(maxX, map.size()) / 4;
+			CreateMappings(cubeSize, mappings);
+
 			for (int y = 0; y < map.size(); y += cubeSize)
 				for(int x = 0; x < map[y].size(); x += cubeSize)
 					if (map[y][x] != ' ')
@@ -191,7 +225,6 @@ int main(int argc, char* argv[])
 						Point a(x, y), b(x + cubeSize - 1, y + cubeSize - 1);
 						faces.emplace_back(a, b);
 					}
-
 
 			auto p = line.find_first_of("LR");
 			while (p != std::string::npos)
@@ -213,6 +246,5 @@ int main(int argc, char* argv[])
 				1000 * (pos.y + 1) + 4 * (pos.x + 1) + direction, 1000 * (cubePos.y + 1) + 4 * (cubePos.x + 1) + cubeDirection);
 		}
 	}
-	
 	return 0;
 }
